@@ -74,7 +74,6 @@ if __name__ == "__main__":
     parser.add_argument('--img_size', type=int, default=384)
     parser.add_argument('--num_workers', type=int, default=4) 
     parser.add_argument('--batch_size', type=int, default=32)
-    parser.add_argument('--img_size', type=int, default=384)
     parser.add_argument('--model_name', default="ConvNext")
     parser.add_argument('--detail', default="xlarge_384")
     args = parser.parse_args()
