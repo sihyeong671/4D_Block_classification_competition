@@ -60,7 +60,7 @@ class CustomDataset(Dataset):
         img_path = self.img_path_list[index]
         
         image = cv2.imread(img_path)
-        
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         if self.transforms is not None:
             image = self.transforms(image=image)['image']
         
@@ -167,6 +167,7 @@ seed_everything(CFG['SEED'])
 
 ## 데이터 셋 설정
 df = pd.read_csv('./train.csv')
+# df['img_path'].apply(lambda x: )
 df = df.sample(frac=1)
 train_len = int(len(df) * 0.8)
 train_df = df[:train_len]
