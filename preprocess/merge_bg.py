@@ -2,12 +2,10 @@ import os
 import cv2
 import numpy as np
 from glob import glob
-    
 
-data_dir = "./data/train"
+data_dir = "../data/train"
 background_dir = "./crawed_img/crawed_img/child/"
 background_dir_2 = "./crawed_img/crawed_img/indoor/"
-# background = "./background.jpg"
 
 img_list = glob(os.path.join(data_dir, "*.jpg"))
 background_list = glob(os.path.join(background_dir,"*.jpg"))
@@ -16,12 +14,12 @@ background_list_2 = glob(os.path.join(background_dir_2,"*.jpg"))
 ## background_list, img_list 개수 맞추기
 background_list += background_list_2 + background_list_2 + background_list_2 + background_list_2[:2635]
 
-for img_l, background in zip(img_list, background_list):
+for img_l, background in zip(img_list,background_list):
         # './train\\TRAIN_00999.jpg'
         name = img_l[-15:]
         img = cv2.imread(img_l)
 
-        thresh = 220
+        thresh = 230
         
         img_bin = np.array(img[:, :, 0] < thresh, dtype=np.uint8) * 255
         img_blur = cv2.medianBlur(img_bin, 5)
@@ -40,4 +38,5 @@ for img_l, background in zip(img_list, background_list):
         img_back[img_mask] = (0, 0, 0)
         img_filter += img_back
 
+        img_filter = cv2.cvtColor(img_filter, cv2.COLOR_RGB2BGR)
         cv2.imwrite(f"./merge_train/{name}",img_filter)
