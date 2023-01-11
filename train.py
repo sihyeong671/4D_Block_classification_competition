@@ -1,79 +1,29 @@
-import random
 import pandas as pd
 import numpy as np
 import os
-import cv2
+
 from copy import deepcopy
 
 import torch
 import torch.nn as nn
-import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 
 import transformers
-from transformers import ConvNextForImageClassification
 
 import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
-import torchvision.models as models
 
 from tqdm.auto import tqdm
-from sklearn.metrics import accuracy_score
 
+import argparse
+
+from util import *
+
+import wandb
 import warnings
 warnings.filterwarnings(action='ignore') 
 
-import wandb
-wandb.init(project="test-project", entity="dacon_4dblock")
-
-def seed_everything(seed):
-    random.seed(seed)
-    os.environ['PYTHONHASHSEED'] = str(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = True
-
-def get_labels(df):
-    return df.iloc[:,2:].values
-
-class BaseModel(nn.Module):
-    def __init__(self, num_classes=10):
-        super(BaseModel, self).__init__()
-        model = ConvNextForImageClassification.from_pretrained("facebook/convnext-xlarge-224-22k")
-        self.backbone = model
-        self.classifier = nn.Linear(1000, num_classes)
-        
-    def forward(self, x):
-        x = self.backbone(x).logits
-        x = F.sigmoid(self.classifier(x))
-        return x
-
-class CustomDataset(Dataset):
-    def __init__(self, img_path_list, label_list, transforms=None):
-        self.img_path_list = img_path_list
-        self.label_list = label_list
-        self.transforms = transforms
-        
-    def __getitem__(self, index):
-        img_path = self.img_path_list[index]
-        
-        image = cv2.imread(img_path)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        
-        if self.transforms is not None:
-            image = self.transforms(image=image)['image']
-        
-        if self.label_list is not None:
-            label = torch.FloatTensor(self.label_list[index])
-            return image, label
-        else:
-            return image
-        
-    def __len__(self):
-        return len(self.img_path_list)
 
 def validation(model, criterion, val_loader, device):
     model.eval()
@@ -90,6 +40,7 @@ def validation(model, criterion, val_loader, device):
             
             probs  = probs.cpu().detach().numpy()
             labels = labels.cpu().detach().numpy()
+            
             preds = probs > 0.5
             batch_acc = (labels == preds).mean()
             
@@ -101,14 +52,55 @@ def validation(model, criterion, val_loader, device):
     
     return _val_loss, _val_acc
 
-def train(model, optimizer, train_loader, val_loader, scheduler, device):
-    model.to(device)
-    criterion = nn.BCELoss().to(device)
+
+def train(args):
     
+    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    
+    ## 데이터 셋 설정
+    df = pd.read_csv('./data/train.csv')
+    df["img_path"] = df['img_path'].apply(lambda x: './data/merge_'+x[2:]) # img path 변경
+    df = df.sample(frac=1)
+    
+    train_len = int(len(df) * 0.8)
+    train_df = df[:train_len]
+    val_df = df[train_len:]
+
+    train_labels = get_labels(train_df)
+    val_labels = get_labels(val_df)
+
+    
+    train_transform = A.Compose([
+                            A.Resize(args.img_size,args.img_size),
+                            A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), max_pixel_value=255.0, always_apply=False, p=1.0),
+                            ToTensorV2()
+                        ])
+    
+    test_transform = A.Compose([
+                            A.Resize(args.img_size,args.img_size),
+                            A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), max_pixel_value=255.0, always_apply=False, p=1.0),
+                            ToTensorV2()
+                        ])
+    
+    train_dataset = CustomDataset(train_df['img_path'].values, train_labels, train_transform)
+    train_loader = DataLoader(train_dataset, batch_size = args.batch_size, shuffle=True, num_workers=args.num_workers)
+
+    val_dataset = CustomDataset(val_df['img_path'].values, val_labels, test_transform)
+    val_loader = DataLoader(val_dataset, batch_size = args.batch_size, shuffle=False, num_workers=args.num_workers)
+
+    model = ConvNext_xlarge()
+    model.to(device)
+    
+    optimizer = torch.optim.Adam(params = model.parameters(), lr = args.lr)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=2, threshold_mode='abs', min_lr=1e-8, verbose=True)
+
+
     best_val_acc = 0
     best_model = None
     
-    for epoch in range(1, CFG['EPOCHS']+1):
+    criterion = nn.BCELoss().to(device)
+    
+    for epoch in range(1, args.epochs+1):
         model.train()
         train_loss = []
         for imgs, labels in tqdm(iter(train_loader)):
@@ -127,6 +119,7 @@ def train(model, optimizer, train_loader, val_loader, scheduler, device):
                     
         _val_loss, _val_acc = validation(model, criterion, val_loader, device)
         _train_loss = np.mean(train_loss)
+        
         print(f'Epoch [{epoch}], Train Loss : [{_train_loss:.5f}] Val Loss : [{_val_loss:.5f}] Val ACC : [{_val_acc:.5f}]')
         
         if scheduler is not None:
@@ -136,83 +129,39 @@ def train(model, optimizer, train_loader, val_loader, scheduler, device):
             best_val_acc = _val_acc
             best_model = deepcopy(model)
         
-        if epoch % 10 == 0:
-            torch.save(best_model, f'./{epoch}_best_model.pth')
+        if epoch % 5 == 0:
+            torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{epoch}.pth')
             
-        wandb.log({"loss": loss})
+        wandb.log({
+            "train loss": _train_loss, 
+            "val loss": _val_loss,
+            "val acc": _val_acc
+            })
         wandb.watch(model)
-    return best_model
 
-def inference(model, test_loader, device):
-    model.to(device)
-    model.eval()
-    predictions = []
-    with torch.no_grad():
-        for imgs in tqdm(iter(test_loader)):
-            imgs = imgs.float().to(device)
-            
-            probs = model(imgs)
 
-            probs  = probs.cpu().detach().numpy()
-            preds = probs > 0.5
-            preds = preds.astype(int)
-            predictions += preds.tolist()
-    return predictions
-
-## config 설정
-device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-CFG = {
-    'IMG_SIZE':224,
-    'EPOCHS':50,
-    'LEARNING_RATE':3e-4,
-    'BATCH_SIZE':16,
-    'SEED':41
-}
-seed_everything(CFG['SEED'])
-
-## 데이터 셋 설정
-df = pd.read_csv('./train.csv')
-df["img_path"] = df['img_path'].apply(lambda x: './merge_'+x[2:]) # img path 변경
-df = df.sample(frac=1)
-train_len = int(len(df) * 0.8)
-train_df = df[:train_len]
-val_df = df[train_len:]
-
-train_labels = get_labels(train_df)
-val_labels = get_labels(val_df)
-
-train_transform = A.Compose([
-                            A.Resize(CFG['IMG_SIZE'],CFG['IMG_SIZE']),
-                            A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), max_pixel_value=255.0, always_apply=False, p=1.0),
-                            ToTensorV2()
-                            ])
-
-test_transform = A.Compose([
-                            A.Resize(CFG['IMG_SIZE'],CFG['IMG_SIZE']),
-                            A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), max_pixel_value=255.0, always_apply=False, p=1.0),
-                            ToTensorV2()
-                            ])
-
-train_dataset = CustomDataset(train_df['img_path'].values, train_labels, train_transform)
-train_loader = DataLoader(train_dataset, batch_size = CFG['BATCH_SIZE'], shuffle=True, num_workers=0)
-
-val_dataset = CustomDataset(val_df['img_path'].values, val_labels, test_transform)
-val_loader = DataLoader(val_dataset, batch_size = CFG['BATCH_SIZE'], shuffle=False, num_workers=0)
-
-test = pd.read_csv('./test.csv')
-test_dataset = CustomDataset(test['img_path'].values, None, test_transform)
-test_loader = DataLoader(test_dataset, batch_size = CFG['BATCH_SIZE'], shuffle=False, num_workers=0)
-
-## 학습
-model = BaseModel()
-model.eval()
-optimizer = torch.optim.Adam(params = model.parameters(), lr = CFG["LEARNING_RATE"])
-scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=2,threshold_mode='abs',min_lr=1e-8, verbose=True)
-
-## 저장
-infer_model = train(model, optimizer, train_loader, val_loader, scheduler, device)
-preds = inference(model, test_loader, device)
-submit = pd.read_csv('./sample_submission.csv')
-submit.iloc[:,1:] = preds
-submit.head()
-submit.to_csv('./swin_submit.csv', index=False)
+if __name__ == "__main__":
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--seed', type=int, default=777)
+    parser.add_argument('--epochs', type=int, default=20)
+    parser.add_argument('--lr', type=float, default=3e-4)
+    parser.add_argument('--img_size', type=int, default=384)
+    parser.add_argument('--num_workers', type=int, default=4) 
+    parser.add_argument('--batch_size', type=int, default=32)
+    parser.add_argument('--img_size', type=int, default=384)
+    parser.add_argument('--model_name', default="ConvNext")
+    parser.add_argument('--detail', default="xlarge_384")
+    args = parser.parse_args()
+    
+    seed_everything(args.seed)
+    
+    wandb.init(
+        entity="dacon_4dblock",
+        project=args.model_name,
+        name=args.detail,
+        config={"epochs": args.epochs, "batch_size": args.batch_size}
+    )
+    
+    train(args)
+    
