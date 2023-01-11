@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import os
 import cv2
+from copy import deepcopy
 
 import torch
 import torch.nn as nn
@@ -41,7 +42,7 @@ def get_labels(df):
 class BaseModel(nn.Module):
     def __init__(self, num_classes=10):
         super(BaseModel, self).__init__()
-        model = ConvNextForImageClassification.from_pretrained("facebook/convnext-base-224")
+        model = ConvNextForImageClassification.from_pretrained("facebook/convnext-xlarge-224-22k")
         self.backbone = model
         self.classifier = nn.Linear(1000, num_classes)
         
@@ -61,6 +62,7 @@ class CustomDataset(Dataset):
         
         image = cv2.imread(img_path)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        
         if self.transforms is not None:
             image = self.transforms(image=image)['image']
         
@@ -132,9 +134,12 @@ def train(model, optimizer, train_loader, val_loader, scheduler, device):
             
         if best_val_acc < _val_acc:
             best_val_acc = _val_acc
-            best_model = model
+            best_model = deepcopy(model)
+        
+        if epoch % 10 == 0:
+            torch.save(best_model, f'./{epoch}_best_model.pth')
+            
         wandb.log({"loss": loss})
-
         wandb.watch(model)
     return best_model
 
@@ -158,7 +163,7 @@ def inference(model, test_loader, device):
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 CFG = {
     'IMG_SIZE':224,
-    'EPOCHS':15,
+    'EPOCHS':50,
     'LEARNING_RATE':3e-4,
     'BATCH_SIZE':16,
     'SEED':41
@@ -167,7 +172,7 @@ seed_everything(CFG['SEED'])
 
 ## 데이터 셋 설정
 df = pd.read_csv('./train.csv')
-# df['img_path'].apply(lambda x: )
+df["img_path"] = df['img_path'].apply(lambda x: './merge_'+x[2:]) # img path 변경
 df = df.sample(frac=1)
 train_len = int(len(df) * 0.8)
 train_df = df[:train_len]
