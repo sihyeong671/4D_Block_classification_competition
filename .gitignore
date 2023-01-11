@@ -1,4 +1,9 @@
 .DS_Store
+
 Pipfile
 Pipfile.lock
+
+__pycache__/
+wandb/
+ckpt/
 data/
