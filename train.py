@@ -89,7 +89,7 @@ def train(args):
     val_dataset = CustomDataset(val_df['img_path'].values, val_labels, test_transform)
     val_loader = DataLoader(val_dataset, batch_size = args.batch_size, shuffle=False, num_workers=args.num_workers)
 
-    model = ConvNext_xlarge()
+    model = ConvNextv2_large()
     model.to(device)
     
     optimizer = torch.optim.Adam(params = model.parameters(), lr = args.lr)

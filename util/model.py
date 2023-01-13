@@ -16,3 +16,16 @@ class ConvNext_xlarge(nn.Module):
         x = F.sigmoid(self.classifier(x))
         return x
 
+
+class ConvNextv2_large(nn.Module):
+    def __init__(self, num_classes=10):
+        super().__init__()
+        model = ConvNextForImageClassification.from_pretrained("timm/convnextv2_large.fcmae_ft_in22k_in1k_384")
+        self.backbone = model
+        self.classifier = nn.Linear(768, num_classes)
+        
+        
+    def forward(self, x):
+        x = self.backbone(x).logits
+        x = F.sigmoid(self.classifier(x))
+        return x
