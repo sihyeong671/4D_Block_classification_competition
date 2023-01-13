@@ -132,15 +132,16 @@ def train(args):
             best_model = deepcopy(model)
         
         if epoch == 1 or epoch % 5 == 0:
-            torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{epoch}.pth')
             if args.makecsvfile:
-                inference(args,epoch)
+                inference(args,best_model, epoch)
         wandb.log({
             "train loss": _train_loss, 
             "val loss": _val_loss,
             "val acc": _val_acc
             })
-        wandb.watch(model)
+
+    torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{args.epochs}.pth')
+        
 
 
 if __name__ == "__main__":

@@ -41,7 +41,7 @@ def infer(model, test_loader, device):
     return predictions
 
 
-def inference(args,epoch):
+def inference(args,model, epoch):
 
     seed_everything(args.seed)
     
@@ -58,7 +58,7 @@ def inference(args,epoch):
     test['img_path'] = test['img_path'].apply(lambda x: './data'+x[1:])
     test_dataset = CustomDataset(test['img_path'].values, None, test_transform)
     test_loader = DataLoader(test_dataset, batch_size = args.batch_size, shuffle=False, num_workers=args.num_workers)
-    model = torch.load(f"./{args.model_name}_{args.detail}_{epoch}.pth")
+    # model = torch.load(f"./{args.model_name}_{args.detail}_{epoch}.pth")
 
     preds = infer(model, test_loader, device)
     submit = pd.read_csv('./data/sample_submission.csv')
