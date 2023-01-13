@@ -1,5 +1,4 @@
 .DS_Store
-<<<<<<< HEAD
 myvenv/
 Pipfile
 Pipfile.lock
@@ -10,7 +9,6 @@ wandb/
 .infer.sh
 .train.sh
 __pycache__/
-=======
 
 Pipfile
 Pipfile.lock
@@ -19,4 +17,3 @@ __pycache__/
 wandb/
 ckpt/
 data/
->>>>>>> 854a1a711b1a1ba2111b2f83228aa866c5fb069f
