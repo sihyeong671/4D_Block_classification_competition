@@ -41,7 +41,11 @@ def infer(model, test_loader, device):
     return predictions
 
 
+<<<<<<< HEAD
 def inference(args):
+=======
+def inference(args,model, epoch):
+>>>>>>> 1febd48906010bf7ff36172afc057a48c350d2cd
 
     seed_everything(args.seed)
     
@@ -58,12 +62,20 @@ def inference(args):
     test['img_path'] = test['img_path'].apply(lambda x: './data'+x[1:])
     test_dataset = CustomDataset(test['img_path'].values, None, test_transform)
     test_loader = DataLoader(test_dataset, batch_size = args.batch_size, shuffle=False, num_workers=args.num_workers)
+<<<<<<< HEAD
     model = torch.load(f"./ckpt/{args.model_name}_{args.detail}_{args.epoch}.pth")
+=======
+    # model = torch.load(f"./{args.model_name}_{args.detail}_{epoch}.pth")
+>>>>>>> 1febd48906010bf7ff36172afc057a48c350d2cd
 
     preds = infer(model, test_loader, device)
     submit = pd.read_csv('./data/sample_submission.csv')
     submit.iloc[:,1:] = preds
+<<<<<<< HEAD
     submit.to_csv(f'./{args.model_name}_{args.detail}_{args.epoch}.csv', index=False)
+=======
+    submit.to_csv(f'./{args.model_name}_{args.detail}_{epoch}.csv', index=False)
+>>>>>>> 1febd48906010bf7ff36172afc057a48c350d2cd
     
 if __name__ == "__main__":
     

@@ -24,6 +24,8 @@ import wandb
 import warnings
 warnings.filterwarnings(action='ignore') 
 
+from inference import inference
+
 
 def validation(model, criterion, val_loader, device):
     model.eval()
@@ -131,10 +133,12 @@ def train(args):
             best_model = deepcopy(model)
         else:
             early_stop += 1
-        
-        if epoch % 5 == 0:
-            torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{epoch}.pth')
             
+        
+        if epoch == 1 or epoch % 5 == 0:
+            if args.makecsvfile:
+                inference(args, best_model, epoch)
+                
         wandb.log({
             "train loss": _train_loss, 
             "val loss": _val_loss,
@@ -145,6 +149,9 @@ def train(args):
             torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{epoch}.pth')
             break
             
+
+    torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{args.epochs}.pth')
+        
 
 
 if __name__ == "__main__":
@@ -158,6 +165,8 @@ if __name__ == "__main__":
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--model_name', default="ConvNext")
     parser.add_argument('--detail', default="xlarge_384")
+    parser.add_argument('--makecsvfile', type=bool ,default=False)
+    # parser.add_argument('--checkpoints', default="microsoft/beit-base-patch16-224-pt22k-ft22k")
     args = parser.parse_args()
     
     seed_everything(args.seed)

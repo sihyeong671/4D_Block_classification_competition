@@ -1,8 +1,11 @@
 .DS_Store
-
+myvenv/
 Pipfile
 Pipfile.lock
-
+data/
+ckpt/
+submit/
+wandb/
 __pycache__/
 wandb/
 ckpt/
