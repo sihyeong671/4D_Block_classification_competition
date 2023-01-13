@@ -1,4 +1,11 @@
 .DS_Store
+myvenv/
 Pipfile
 Pipfile.lock
 data/
+ckpt/
+submit/
+wandb/
+.infer.sh
+.train.sh
+__pycache__/
