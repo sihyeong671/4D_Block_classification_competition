@@ -56,6 +56,7 @@ def validation(model, criterion, val_loader, device):
 def train(args):
     
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    early_stop = 0
     
     ## 데이터 셋 설정
     df = pd.read_csv('./data/train.csv')
@@ -128,6 +129,8 @@ def train(args):
         if best_val_acc < _val_acc:
             best_val_acc = _val_acc
             best_model = deepcopy(model)
+        else:
+            early_stop += 1
         
         if epoch % 5 == 0:
             torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{epoch}.pth')
@@ -137,7 +140,11 @@ def train(args):
             "val loss": _val_loss,
             "val acc": _val_acc
             })
-        wandb.watch(model)
+        
+        if early_stop > 5:
+            torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{epoch}.pth')
+            break
+            
 
 
 if __name__ == "__main__":
