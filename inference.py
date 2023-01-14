@@ -23,6 +23,16 @@ from util import *
 import warnings
 warnings.filterwarnings(action='ignore')
 
+class Maxvit_base(nn.Module):
+    def __init__(self):
+        super().__init__()
+        model = create_model("maxvit_rmlp_tiny_rw_256", pretrained=True, num_classes=10)
+        self.backbone = model
+        
+    def forward(self, x):
+        x = self.backbone(x)
+        x = F.sigmoid(x)
+        return x
 
 def infer(model, test_loader, device):
     model.to(device)
@@ -41,7 +51,7 @@ def infer(model, test_loader, device):
     return predictions
 
 
-def inference(args,model, epoch):
+def inference(args,model=None,epoch=0):
 
     seed_everything(args.seed)
     
@@ -59,7 +69,8 @@ def inference(args,model, epoch):
     test_dataset = CustomDataset(test['img_path'].values, None, test_transform)
     test_loader = DataLoader(test_dataset, batch_size = args.batch_size, shuffle=False, num_workers=args.num_workers)
     # model = torch.load(f"./{args.model_name}_{args.detail}_{epoch}.pth")
-
+    if args.ckpt:
+        model = torch.load(f"./ckpt/{args.ckpt}")
     preds = infer(model, test_loader, device)
     submit = pd.read_csv('./data/sample_submission.csv')
     submit.iloc[:,1:] = preds
@@ -76,6 +87,7 @@ if __name__ == "__main__":
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--model_name', default="ConvNext")
     parser.add_argument('--detail', default="xlarge_384")
+    parser.add_argument('--ckpt',default=None)
     args = parser.parse_args()
     
     

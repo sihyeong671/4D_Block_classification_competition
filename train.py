@@ -140,9 +140,9 @@ def train(args):
             early_stop += 1
             
         
-        if epoch == 1 or epoch % 20 == 0:
+        if epoch == 1 or epoch % 5 == 0:
             if args.makecsvfile:
-                inference(args, best_model, epoch)
+                inference(args=args,model=best_model, epoch=epoch,ckpt=None)
                 
         wandb.log({
             "train loss": _train_loss, 
@@ -182,6 +182,7 @@ if __name__ == "__main__":
     parser.add_argument('--model_name', default="ConvNext")
     parser.add_argument('--detail', default="xlarge_384")
     parser.add_argument('--makecsvfile', type=bool ,default=False)
+    parser.add_argument('--ckpt',default=None)
     # parser.add_argument('--checkpoints', default="microsoft/beit-base-patch16-224-pt22k-ft22k")
     args = parser.parse_args()
     
