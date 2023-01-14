@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import transformers
-from transformers import ConvNextForImageClassification, BeitForImageClassification
+from transformers import ConvNextForImageClassification, BeitForImageClassification, ViTForImageClassification
 
 class ConvNext_xlarge(nn.Module):
     def __init__(self, num_classes=10):
@@ -14,6 +14,27 @@ class ConvNext_xlarge(nn.Module):
     def forward(self, x):
         x = self.backbone(x).logits
         x = F.sigmoid(self.classifier(x))
+        return x
+class Finetuned_ConvNext(nn.Module):
+    def __init__(self, num_classes=10):
+        super().__init__()
+        model = ConvNextForImageClassification.from_pretrained("ahsanjavid/convnext-tiny-finetuned-cifar10")
+        self.backbone = model
+        
+    def forward(self, x):
+        x = self.backbone(x).logits
+        x = F.sigmoid(x)
+        return x
+
+class Finetuned_VIT(nn.Module):
+    def __init__(self, num_classes=10):
+        super().__init__()
+        model = ViTForImageClassification.from_pretrained("ahsanjavid/convnext-tiny-finetuned-cifar10")
+        self.backbone = model
+        
+    def forward(self, x):
+        x = self.backbone(x).logits
+        x = F.sigmoid(x)
         return x
 
 
@@ -41,3 +62,5 @@ class Beit_base(nn.Module):
         x = self.backbone(x).logits
         x = F.sigmoid(self.classifier(x))
         return x
+
+

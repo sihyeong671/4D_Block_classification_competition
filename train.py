@@ -135,7 +135,7 @@ def train(args):
             early_stop += 1
             
         
-        if epoch == 1 or epoch % 5 == 0:
+        if epoch == 1 or epoch % 20 == 0:
             if args.makecsvfile:
                 inference(args, best_model, epoch)
                 
