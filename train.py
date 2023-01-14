@@ -24,6 +24,8 @@ import wandb
 import warnings
 warnings.filterwarnings(action='ignore') 
 
+from inference import inference
+
 
 def validation(model, criterion, val_loader, device):
     model.eval()
@@ -56,6 +58,7 @@ def validation(model, criterion, val_loader, device):
 def train(args):
     
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    early_stop = 0
     
     ## 데이터 셋 설정
     df = pd.read_csv('./data/train.csv')
@@ -88,7 +91,7 @@ def train(args):
     val_dataset = CustomDataset(val_df['img_path'].values, val_labels, test_transform)
     val_loader = DataLoader(val_dataset, batch_size = args.batch_size, shuffle=False, num_workers=args.num_workers)
 
-    model = ConvNext_xlarge()
+    model = ConvNextv2_large()
     model.to(device)
     
     optimizer = torch.optim.Adam(params = model.parameters(), lr = args.lr)
@@ -128,16 +131,27 @@ def train(args):
         if best_val_acc < _val_acc:
             best_val_acc = _val_acc
             best_model = deepcopy(model)
-        
-        if epoch % 5 == 0:
-            torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{epoch}.pth')
+        else:
+            early_stop += 1
             
+        
+        if epoch == 1 or epoch % 5 == 0:
+            if args.makecsvfile:
+                inference(args, best_model, epoch)
+                
         wandb.log({
             "train loss": _train_loss, 
             "val loss": _val_loss,
             "val acc": _val_acc
             })
-        wandb.watch(model)
+        
+        if early_stop > 5:
+            torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{epoch}.pth')
+            break
+            
+
+    torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{args.epochs}.pth')
+        
 
 
 if __name__ == "__main__":
@@ -151,6 +165,8 @@ if __name__ == "__main__":
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--model_name', default="ConvNext")
     parser.add_argument('--detail', default="xlarge_384")
+    parser.add_argument('--makecsvfile', type=bool ,default=False)
+    # parser.add_argument('--checkpoints', default="microsoft/beit-base-patch16-224-pt22k-ft22k")
     args = parser.parse_args()
     
     seed_everything(args.seed)
