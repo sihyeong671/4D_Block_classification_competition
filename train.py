@@ -31,6 +31,7 @@ def validation(model, criterion, val_loader, device):
     model.eval()
     val_loss = []
     val_acc = []
+    classes_acc = []
     with torch.no_grad():
         for imgs, labels in tqdm(iter(val_loader)):
             imgs = imgs.float().to(device)
@@ -45,14 +46,17 @@ def validation(model, criterion, val_loader, device):
             
             preds = probs > 0.5
             batch_acc = (labels == preds).mean()
-            
+            class_acc = [labels[i] == preds[i] for i in range(len(labels))]
+
             val_acc.append(batch_acc)
             val_loss.append(loss.item())
+            classes_acc.append(np.mean(class_acc,axis=0))
         
+        _classes_acc = np.mean(classes_acc,axis=0)
         _val_loss = np.mean(val_loss)
         _val_acc = np.mean(val_acc)
     
-    return _val_loss, _val_acc
+    return _val_loss, _val_acc, _classes_acc
 
 
 def train(args):
@@ -91,7 +95,7 @@ def train(args):
     val_dataset = CustomDataset(val_df['img_path'].values, val_labels, test_transform)
     val_loader = DataLoader(val_dataset, batch_size = args.batch_size, shuffle=False, num_workers=args.num_workers)
 
-    model = ConvNextv2_large()
+    model = Maxvit_base()
     model.to(device)
     
     optimizer = torch.optim.Adam(params = model.parameters(), lr = args.lr)
@@ -120,10 +124,11 @@ def train(args):
             
             train_loss.append(loss.item())
                     
-        _val_loss, _val_acc = validation(model, criterion, val_loader, device)
+        _val_loss, _val_acc, _classes_acc = validation(model, criterion, val_loader, device)
         _train_loss = np.mean(train_loss)
         
         print(f'Epoch [{epoch}], Train Loss : [{_train_loss:.5f}] Val Loss : [{_val_loss:.5f}] Val ACC : [{_val_acc:.5f}]')
+        print(f'Class acc(A-J) : [{_classes_acc}]')
         
         if scheduler is not None:
             scheduler.step(_val_acc)
@@ -142,7 +147,18 @@ def train(args):
         wandb.log({
             "train loss": _train_loss, 
             "val loss": _val_loss,
-            "val acc": _val_acc
+            "val acc": _val_acc,
+            "A Acc": _classes_acc[0],
+            "B Acc": _classes_acc[1],
+            "C Acc": _classes_acc[2],
+            "D Acc": _classes_acc[3],
+            "E Acc": _classes_acc[4],
+            "F Acc": _classes_acc[5],
+            "G Acc": _classes_acc[6],
+            "H Acc": _classes_acc[7],
+            "I Acc": _classes_acc[8],
+            "J Acc": _classes_acc[9],
+
             })
         
         if early_stop > 5:

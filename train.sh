@@ -1,8 +1,8 @@
 python train.py \
---model_name ConvNext \
---detail v2_large_384 \
+--model_name maxvit \
+--detail maxvit_large \
 --batch_size 16 \
---epochs 20\
+--epochs 50 \
 --makecsvfile True \
---img_size 384 \
+--img_size 256 \
 
