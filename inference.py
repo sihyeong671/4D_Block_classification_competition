@@ -24,6 +24,7 @@ import warnings
 warnings.filterwarnings(action='ignore')
 
 
+
 def infer(model, test_loader, device):
     model.to(device)
     model.eval()
@@ -41,11 +42,7 @@ def infer(model, test_loader, device):
     return predictions
 
 
-<<<<<<< HEAD
-def inference(args):
-=======
-def inference(args,model, epoch):
->>>>>>> 1febd48906010bf7ff36172afc057a48c350d2cd
+def inference(args,model=None,epoch=0):
 
     seed_everything(args.seed)
     
@@ -62,20 +59,13 @@ def inference(args,model, epoch):
     test['img_path'] = test['img_path'].apply(lambda x: './data'+x[1:])
     test_dataset = CustomDataset(test['img_path'].values, None, test_transform)
     test_loader = DataLoader(test_dataset, batch_size = args.batch_size, shuffle=False, num_workers=args.num_workers)
-<<<<<<< HEAD
-    model = torch.load(f"./ckpt/{args.model_name}_{args.detail}_{args.epoch}.pth")
-=======
     # model = torch.load(f"./{args.model_name}_{args.detail}_{epoch}.pth")
->>>>>>> 1febd48906010bf7ff36172afc057a48c350d2cd
-
+    if args.ckpt:
+        model = torch.load(f"./ckpt/{args.ckpt}")
     preds = infer(model, test_loader, device)
     submit = pd.read_csv('./data/sample_submission.csv')
     submit.iloc[:,1:] = preds
-<<<<<<< HEAD
-    submit.to_csv(f'./{args.model_name}_{args.detail}_{args.epoch}.csv', index=False)
-=======
     submit.to_csv(f'./{args.model_name}_{args.detail}_{epoch}.csv', index=False)
->>>>>>> 1febd48906010bf7ff36172afc057a48c350d2cd
     
 if __name__ == "__main__":
     
@@ -88,6 +78,7 @@ if __name__ == "__main__":
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--model_name', default="ConvNext")
     parser.add_argument('--detail', default="xlarge_384")
+    parser.add_argument('--ckpt',default=None)
     args = parser.parse_args()
     
     

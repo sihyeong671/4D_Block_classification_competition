@@ -1,8 +1,6 @@
 python inference.py \
 --model_name ConvNext \
-<<<<<<< HEAD
 --detail v2_large_384 \
-=======
---detail xlarge_384 \
->>>>>>> 1febd48906010bf7ff36172afc057a48c350d2cd
---epoch 20\
+--epoch 20 \
+--ckpt maxvit_maxvit_large_50.pth \
+--img_size 256 \
