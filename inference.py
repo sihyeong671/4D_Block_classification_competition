@@ -23,16 +23,7 @@ from util import *
 import warnings
 warnings.filterwarnings(action='ignore')
 
-class Maxvit_base(nn.Module):
-    def __init__(self):
-        super().__init__()
-        model = create_model("maxvit_rmlp_tiny_rw_256", pretrained=True, num_classes=10)
-        self.backbone = model
-        
-    def forward(self, x):
-        x = self.backbone(x)
-        x = F.sigmoid(x)
-        return x
+
 
 def infer(model, test_loader, device):
     model.to(device)

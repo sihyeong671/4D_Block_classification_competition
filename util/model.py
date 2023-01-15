@@ -17,15 +17,16 @@ class ConvNext_xlarge(nn.Module):
         x = self.backbone(x).logits
         x = F.sigmoid(self.classifier(x))
         return x
-class Finetuned_ConvNext(nn.Module):
+class ConvNext_base(nn.Module):
     def __init__(self, num_classes=10):
         super().__init__()
-        model = ConvNextForImageClassification.from_pretrained("ahsanjavid/convnext-tiny-finetuned-cifar10")
+        model = ConvNextForImageClassification.from_pretrained("facebook/convnext-base-224")
         self.backbone = model
+        self.classifier = nn.Linear(1000,num_classes)
         
     def forward(self, x):
         x = self.backbone(x).logits
-        x = F.sigmoid(x)
+        x = F.sigmoid(self.classifier(x))
         return x
 
 class Finetuned_VIT(nn.Module):
@@ -70,6 +71,17 @@ class Maxvit_base(nn.Module):
     def __init__(self):
         super().__init__()
         model = create_model("maxvit_rmlp_tiny_rw_256", pretrained=True, num_classes=10)
+        self.backbone = model
+        
+    def forward(self, x):
+        x = self.backbone(x)
+        x = F.sigmoid(x)
+        return x
+
+class CoatNet(nn.Module):
+    def __init__(self):
+        super().__init__()
+        model = create_model("coatnet_rmlp_2_rw_224", pretrained=True, num_classes=10)
         self.backbone = model
         
     def forward(self, x):

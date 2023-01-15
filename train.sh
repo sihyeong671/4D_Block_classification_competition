@@ -1,8 +1,8 @@
 python train.py \
---model_name maxvit \
---detail maxvit_large \
+--model_name coatnet \
+--detail coatnetsmall \
 --batch_size 16 \
 --epochs 50 \
 --makecsvfile True \
---img_size 256 \
+--img_size 224 \
 

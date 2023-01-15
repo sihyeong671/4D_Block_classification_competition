@@ -61,19 +61,12 @@ def validation(model, criterion, val_loader, device):
     return _val_loss, _val_acc, _classes_acc
 
 
-def train(args):
+def train(args,train_df,val_df):
     
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     early_stop = 0
-    
     ## 데이터 셋 설정
-    df = pd.read_csv('./data/train.csv')
-    df["img_path"] = df['img_path'].apply(lambda x: './data/merge_'+x[2:]) # img path 변경
-    df = df.sample(frac=1)
     
-    train_len = int(len(df) * 0.8)
-    train_df = df[:train_len]
-    val_df = df[train_len:]
 
     train_labels = get_labels(train_df)
     val_labels = get_labels(val_df)
@@ -163,14 +156,31 @@ def train(args):
 
             })
         
-        '''
+        
         if early_stop > 5:
             torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{epoch}.pth')
             break
-        '''
+        
 
     torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{args.epochs}.pth')
         
+def kfold_train(args):
+    models = []
+    df = pd.read_csv('./data/train.csv')
+    df["img_path"] = df['img_path'].apply(lambda x: './data/merge_'+x[2:]) # img path 변경
+    kfold = KFold(n_splits=5, shuffle=True, random_state=777)
+    models = []
+    cnt = 1
+    for train_idx, valid_idx in kfold.split(df):
+        cnt += 1
+        model = ConvNext_base()
+        train_df = df.iloc[train_idx]
+        valid_df = df.iloc[valid_idx]
+        best = train(args, train_df, valid_df)
+        models.append(best)   
+        torch.save(model,f"./ckpt/kfold_{cnt}.pth")
+
+    return models
 
 
 if __name__ == "__main__":
@@ -197,6 +207,7 @@ if __name__ == "__main__":
         name=args.detail,
         config={"epochs": args.epochs, "batch_size": args.batch_size}
     )
-      
-    train(args)
+    models = []
+    
+    kfold_train(args)
     
