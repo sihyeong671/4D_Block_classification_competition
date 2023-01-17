@@ -28,6 +28,9 @@ from inference import inference
 
 from sklearn.model_selection import train_test_split, KFold
 
+CLASSES = [
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'
+]
 
 def validation(model, criterion, val_loader, device):
     model.eval()
@@ -54,7 +57,7 @@ def validation(model, criterion, val_loader, device):
             val_loss.append(loss.item())
             classes_acc.append(np.mean(class_acc,axis=0))
         
-        _classes_acc = np.mean(classes_acc,axis=0)
+        _classes_acc = np.mean(classes_acc, axis=0)
         _val_loss = np.mean(val_loss)
         _val_acc = np.mean(val_acc)
     
@@ -97,7 +100,7 @@ def train(args):
     val_dataset = CustomDataset(val_df['img_path'].values, val_labels, test_transform)
     val_loader = DataLoader(val_dataset, batch_size = args.batch_size, shuffle=False, num_workers=args.num_workers)
 
-    model = CoatNet()
+    model = ConvNext_xlarge()
     model.to(device)
     
     optimizer = torch.optim.Adam(params = model.parameters(), lr = args.lr)
@@ -130,7 +133,8 @@ def train(args):
         _train_loss = np.mean(train_loss)
         
         print(f'Epoch [{epoch}], Train Loss : [{_train_loss:.5f}] Val Loss : [{_val_loss:.5f}] Val ACC : [{_val_acc:.5f}]')
-        print(f'Class acc(A-J) : [{_classes_acc}]')
+        for _cls, _acc in zip(CLASSES, _classes_acc):
+            print(f'{_cls} acc : [{_acc}]')
         
         if scheduler is not None:
             scheduler.step(_val_acc)
@@ -138,6 +142,7 @@ def train(args):
         if best_val_acc < _val_acc:
             best_val_acc = _val_acc
             best_model = deepcopy(model)
+            early_stop = 0
         else:
             early_stop += 1
             
@@ -163,11 +168,9 @@ def train(args):
 
             })
         
-        '''
-        if early_stop > 5:
+        if early_stop > 10:
             torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{epoch}.pth')
             break
-        '''
 
     torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{args.epochs}.pth')
         
