@@ -1,7 +1,7 @@
 python train.py \
 --model_name ConvNext \
---detail xlarge_384_and_new_merge_image \
+--detail xlarge384_mergedata_addmlp \
 --batch_size 16 \
---epochs 50 \
+--epochs 100 \
 --img_size 384 \
 

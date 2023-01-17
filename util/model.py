@@ -11,12 +11,19 @@ class ConvNext_xlarge(nn.Module):
         super().__init__()
         model = ConvNextForImageClassification.from_pretrained("facebook/convnext-xlarge-384-22k-1k")
         self.backbone = model
-        self.classifier = nn.Linear(1000, num_classes)
+        self.classifier = nn.Sequential(
+            nn.Linear(1000, 512),
+            nn.BatchNorm1d(512),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(512, num_classes))
         
     def forward(self, x):
         x = self.backbone(x).logits
         x = F.sigmoid(self.classifier(x))
         return x
+    
+    
 class ConvNext_base(nn.Module):
     def __init__(self, num_classes=10):
         super().__init__()

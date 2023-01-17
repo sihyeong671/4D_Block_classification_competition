@@ -2,8 +2,10 @@ import pandas as pd
 import numpy as np
 import os
 
+
 from copy import deepcopy
 
+import torch.optim as optim
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -103,9 +105,8 @@ def train(args):
     model = ConvNext_xlarge()
     model.to(device)
     
-    optimizer = torch.optim.Adam(params = model.parameters(), lr = args.lr)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=2, threshold_mode='abs', min_lr=1e-8, verbose=True)
-
+    optimizer = optim.Adam(params = model.parameters(), lr = args.lr)
+    scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=500, T_mult=1, eta_min=0)
 
     best_val_acc = 0
     best_model = None
@@ -147,9 +148,11 @@ def train(args):
             early_stop += 1
             
         
-        if epoch == 1 or epoch % 5 == 0:
+        if epoch == 1 or epoch % 10 == 0:
             if args.makecsvfile:
                 inference(args=args,model=best_model, epoch=epoch)
+            torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{epoch}.pth')
+            
                 
         wandb.log({
             "train loss": _train_loss, 
@@ -168,11 +171,10 @@ def train(args):
 
             })
         
-        if early_stop > 10:
-            torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{epoch}.pth')
+        if early_stop > 7:
             break
 
-    torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{args.epochs}.pth')
+    torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{epoch}.pth')
         
 
 
