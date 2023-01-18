@@ -1,5 +1,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
+from torchvision import models
 
 import transformers
 from transformers import ConvNextForImageClassification, BeitForImageClassification, ViTForImageClassification,AutoModelForImageClassification
@@ -97,4 +98,13 @@ class CoatNet(nn.Module):
         return x
 
 
-
+class ResNet(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.model = models.resnet34(pretrained=True)
+        self.model.fc = nn.Linear(512, 10)
+    
+    def forward(self, x):
+        x = self.model(x)
+        x = F.sigmoid(x)
+        return x

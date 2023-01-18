@@ -1,15 +1,17 @@
 import pandas as pd
 import numpy as np
 import os
-
-
+import argparse
 from copy import deepcopy
+
+import matplotlib.pyplot as plt
 
 import torch.optim as optim
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
+from cosine_annealing_warmup import CosineAnnealingWarmupRestarts
 
 import transformers
 
@@ -18,7 +20,6 @@ from albumentations.pytorch.transforms import ToTensorV2
 
 from tqdm.auto import tqdm
 
-import argparse
 
 from util import *
 
@@ -106,7 +107,15 @@ def train(args):
     model.to(device)
     
     optimizer = optim.Adam(params = model.parameters(), lr = args.lr)
-    scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=500, T_mult=1, eta_min=0)
+    scheduler = CosineAnnealingWarmupRestarts(
+                                                optimizer=optimizer,
+                                                cycle_mult=1,
+                                                max_lr=3e-2,
+                                                min_lr=1e-5,
+                                                warmup_steps=1,
+                                                first_cycle_steps=15,
+                                                gamma=0.5
+                                            )
 
     best_val_acc = 0
     best_model = None
@@ -126,6 +135,7 @@ def train(args):
             loss = criterion(output, labels)
             
             loss.backward()
+            nn.utils.clip_grad_norm_(model.parameters(), args.clip)
             optimizer.step()
             
             train_loss.append(loss.item())
@@ -138,7 +148,7 @@ def train(args):
             print(f'{_cls} acc : [{_acc}]')
         
         if scheduler is not None:
-            scheduler.step(_val_acc)
+            scheduler.step()
             
         if best_val_acc < _val_acc:
             best_val_acc = _val_acc
@@ -148,12 +158,11 @@ def train(args):
             early_stop += 1
             
         
-        if epoch == 1 or epoch % 10 == 0:
+        if epoch == 1 or epoch % 100 == 0:
             if args.makecsvfile:
                 inference(args=args,model=best_model, epoch=epoch)
             torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{epoch}.pth')
-            
-                
+        
         wandb.log({
             "train loss": _train_loss, 
             "val loss": _val_loss,
@@ -168,7 +177,7 @@ def train(args):
             "H Acc": _classes_acc[7],
             "I Acc": _classes_acc[8],
             "J Acc": _classes_acc[9],
-
+            "learning rate": scheduler.get_lr()[0]
             })
         
         if early_stop > 7:
@@ -190,7 +199,8 @@ if __name__ == "__main__":
     parser.add_argument('--model_name', default="ConvNext")
     parser.add_argument('--detail', default="xlarge_384")
     parser.add_argument('--makecsvfile', type=bool ,default=False)
-    parser.add_argument('--ckpt',default=None)
+    parser.add_argument('--ckpt', default=None)
+    parser.add_argument('--clip', default=1)
     # parser.add_argument('--checkpoints', default="microsoft/beit-base-patch16-224-pt22k-ft22k")
     args = parser.parse_args()
     
