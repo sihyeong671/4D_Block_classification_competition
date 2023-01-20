@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
-from cosine_annealing_warmup import CosineAnnealingWarmupRestarts
+# from cosine_annealing_warmup import CosineAnnealingWarmupRestarts
 
 import transformers
 
@@ -107,20 +107,20 @@ def train(args):
     model.to(device)
     
     optimizer = optim.Adam(params = model.parameters(), lr = args.lr)
-    scheduler = CosineAnnealingWarmupRestarts(
-                                                optimizer=optimizer,
-                                                cycle_mult=1,
-                                                max_lr=3e-2,
-                                                min_lr=1e-5,
-                                                warmup_steps=1,
-                                                first_cycle_steps=15,
-                                                gamma=0.5
-                                            )
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer,
+                                                     mode='max',
+                                                     factor=0.5,
+                                                     patience=3,
+                                                     cooldown=5,
+                                                     min_lr=1e-9,
+                                                     threshold_mode='abs',
+                                                     )
 
     best_val_acc = 0
     best_model = None
     
     criterion = nn.BCELoss().to(device)
+    print(optimizer.param_groups[0]['lr'])
     
     for epoch in range(1, args.epochs+1):
         model.train()
@@ -148,7 +148,7 @@ def train(args):
             print(f'{_cls} acc : [{_acc}]')
         
         if scheduler is not None:
-            scheduler.step()
+            scheduler.step(_val_acc)
             
         if best_val_acc < _val_acc:
             best_val_acc = _val_acc
@@ -163,6 +163,8 @@ def train(args):
                 inference(args=args,model=best_model, epoch=epoch)
             torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{epoch}.pth')
         
+        
+        current_lr = float(optimizer.param_groups[0]['lr'])
         wandb.log({
             "train loss": _train_loss, 
             "val loss": _val_loss,
@@ -177,7 +179,7 @@ def train(args):
             "H Acc": _classes_acc[7],
             "I Acc": _classes_acc[8],
             "J Acc": _classes_acc[9],
-            "learning rate": scheduler.get_lr()[0]
+            "learning rate": current_lr
             })
         
         if early_stop > 7:
