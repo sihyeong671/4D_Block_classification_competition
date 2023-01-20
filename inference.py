@@ -42,7 +42,7 @@ def infer(model, test_loader, device):
     return predictions
 
 
-def inference(args,model=None,epoch=0):
+def inference(args, model=None):
 
     seed_everything(args.seed)
     
@@ -65,7 +65,7 @@ def inference(args,model=None,epoch=0):
     preds = infer(model, test_loader, device)
     submit = pd.read_csv('./data/sample_submission.csv')
     submit.iloc[:,1:] = preds
-    submit.to_csv(f'./{args.model_name}_{args.detail}_{epoch}.csv', index=False)
+    submit.to_csv(f'./{args.model_name}_{args.detail}_{args.epoch}.csv', index=False)
     
 if __name__ == "__main__":
     
@@ -78,7 +78,7 @@ if __name__ == "__main__":
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--model_name', default="ConvNext")
     parser.add_argument('--detail', default="xlarge_384")
-    parser.add_argument('--ckpt',default=None)
+    parser.add_argument('--ckpt', default=None)
     args = parser.parse_args()
     
     

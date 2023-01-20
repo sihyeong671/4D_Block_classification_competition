@@ -1,8 +1,6 @@
 python train.py \
---model_name coatnet \
---detail coatnetsmall \
+--model_name ConvNext \
+--detail xlarge384_mergedata_addmlp_cosinelr \
 --batch_size 16 \
---epochs 50 \
---makecsvfile True \
---img_size 224 \
-
+--epochs 100 \
+--img_size 384\

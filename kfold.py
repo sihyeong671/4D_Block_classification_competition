@@ -131,13 +131,14 @@ def train(args,train_df,val_df):
         if best_val_acc < _val_acc:
             best_val_acc = _val_acc
             best_model = deepcopy(model)
+            early_stop = 0
         else:
             early_stop += 1
             
         
         if epoch == 1 or epoch % 5 == 0:
             if args.makecsvfile:
-                inference(args=args,model=best_model, epoch=epoch)
+                inference(args=args, model=best_model, epoch=epoch)
                 
         wandb.log({
             "train loss": _train_loss, 
@@ -153,11 +154,10 @@ def train(args,train_df,val_df):
             "H Acc": _classes_acc[7],
             "I Acc": _classes_acc[8],
             "J Acc": _classes_acc[9],
-
             })
         
         
-        if early_stop > 5:
+        if early_stop > 10:
             torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{epoch}.pth')
             break
         
