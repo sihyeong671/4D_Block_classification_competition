@@ -85,9 +85,14 @@ def train(args):
     val_labels = get_labels(val_df)
 
     
+    
+    
     train_transform = A.Compose([
                             A.Resize(args.img_size,args.img_size),
                             A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), max_pixel_value=255.0, always_apply=False, p=1.0),
+                            A.RandomRotate90(),
+                            A.Blur(),
+                            A.RandomBrightnessContrast(),
                             ToTensorV2()
                         ])
     
@@ -120,7 +125,6 @@ def train(args):
     best_model = None
     
     criterion = nn.BCELoss().to(device)
-    print(optimizer.param_groups[0]['lr'])
     
     for epoch in range(1, args.epochs+1):
         model.train()
@@ -158,7 +162,7 @@ def train(args):
             early_stop += 1
             
         
-        if epoch == 1 or epoch % 100 == 0:
+        if epoch == 1 or epoch % 10 == 0:
             if args.makecsvfile:
                 inference(args=args,model=best_model, epoch=epoch)
             torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{epoch}.pth')
@@ -182,7 +186,7 @@ def train(args):
             "learning rate": current_lr
             })
         
-        if early_stop > 7:
+        if early_stop > 10:
             break
 
     torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{epoch}.pth')
