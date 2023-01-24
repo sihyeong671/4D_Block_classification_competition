@@ -73,8 +73,8 @@ def train(args):
     early_stop = 0
     
     ## 데이터 셋 설정
-    df = pd.read_csv('./data/train.csv')
-    df["img_path"] = df['img_path'].apply(lambda x: './data/merge_'+x[2:]) # img path 변경
+    df = pd.read_csv('./data/new_train.csv')
+    df["img_path"] = df['img_path'].apply(lambda x: './data/new_merge_'+x[2:]) # img path 변경
     df = df.sample(frac=1)
     
     train_len = int(len(df) * 0.8)
@@ -84,8 +84,6 @@ def train(args):
     train_labels = get_labels(train_df)
     val_labels = get_labels(val_df)
 
-    
-    
     
     train_transform = A.Compose([
                             A.Resize(args.img_size,args.img_size),
@@ -124,11 +122,12 @@ def train(args):
     best_val_acc = 0
     best_model = None
     
-    criterion = nn.BCELoss().to(device)
+    # criterion = nn.BCELoss().to(device)
+    criterion = SmoothBCELoss().to(device)
     
     for epoch in range(1, args.epochs+1):
         model.train()
-        train_loss = []
+        train_loss = [] 
         for imgs, labels in tqdm(iter(train_loader)):
             imgs = imgs.float().to(device)
             labels = labels.to(device)
@@ -186,11 +185,14 @@ def train(args):
             "learning rate": current_lr
             })
         
-        if early_stop > 10:
+        if early_stop > 5:
             break
 
     torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{epoch}.pth')
+    # wandb.log_artifact(
+    #     best_model,
         
+    # )
 
 
 if __name__ == "__main__":
