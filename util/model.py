@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from torchvision import models
 
 import transformers
-from transformers import ConvNextForImageClassification, BeitForImageClassification, ViTForImageClassification,AutoModelForImageClassification
+from transformers import ConvNextForImageClassification, BeitForImageClassification, ViTForImageClassification,AutoModelForImageClassification, SwinForImageClassification
 
 from timm import create_model
 
@@ -39,9 +39,7 @@ class ConvNext_xlarge(nn.Module):
         
     def forward(self, x):
         x = self.backbone(x).logits
-        x = F.relu(self.classifier_1(x))
-        x = self.dropout(x)
-        x = F.sigmoid(self.classifier_2(x))
+        x = self.classifier(x)
         return x
 class ConvNext_base(nn.Module):
     def __init__(self, num_classes=10):
@@ -105,6 +103,23 @@ class Maxvit_base(nn.Module):
     def forward(self, x):
         x = self.backbone(x)
         x = F.sigmoid(x)
+        return x
+
+class Swim_t_large(nn.Module):
+    def __init__(self, num_classes=10):
+        super().__init__()
+        model = SwinForImageClassification.from_pretrained("microsoft/swin-base-patch4-window12-384-in22k")
+        self.backbone = model
+        self.classifier = nn.Sequential(
+            nn.Linear(21841, 512),
+            nn.BatchNorm1d(512),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(512, num_classes))
+        
+    def forward(self, x):
+        x = self.backbone(x).logits
+        x = F.sigmoid(self.classifier(x))
         return x
 
 class CoatNet(nn.Module):

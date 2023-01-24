@@ -4,7 +4,6 @@ import os
 import argparse
 from copy import deepcopy
 
-import matplotlib.pyplot as plt
 
 import torch.optim as optim
 import torch
@@ -52,7 +51,7 @@ def validation(model, criterion, val_loader, device):
             probs  = probs.cpu().detach().numpy()
             labels = labels.cpu().detach().numpy()
             
-            preds = probs
+            preds = probs > 0.5
             batch_acc = (labels == preds).mean()
             class_acc = [labels[i] == preds[i] for i in range(len(labels))]
 
@@ -87,6 +86,9 @@ def train(args):
     train_transform = A.Compose([
                             A.Resize(args.img_size,args.img_size),
                             A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), max_pixel_value=255.0, always_apply=False, p=1.0),
+                            A.RandomRotate90(),
+                            A.Blur(),
+                            A.RandomBrightnessContrast(),
                             ToTensorV2()
                         ])
     
@@ -102,7 +104,7 @@ def train(args):
     val_dataset = CustomDataset(val_df['img_path'].values, val_labels, test_transform)
     val_loader = DataLoader(val_dataset, batch_size = args.batch_size, shuffle=False, num_workers=args.num_workers)
 
-    model = ConvNext_large()
+    model = Swim_t_large()
     model.to(device)
     
     optimizer = optim.Adam(params = model.parameters(), lr = args.lr)
@@ -134,7 +136,6 @@ def train(args):
             loss = criterion(output, labels)
             
             loss.backward()
-            nn.utils.clip_grad_norm_(model.parameters(), args.clip)
             optimizer.step()
             
             train_loss.append(loss.item())
@@ -159,7 +160,7 @@ def train(args):
         
         if epoch == 1 or epoch % 100 == 0:
             if args.makecsvfile:
-                inference(args=args,model=best_model, epoch=epoch)
+                inference(args=args,model=best_model)
             torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{epoch}.pth')
         
         
