@@ -46,7 +46,7 @@ def validation(model, criterion, val_loader, device):
             probs  = probs.cpu().detach().numpy()
             labels = labels.cpu().detach().numpy()
             
-            preds = probs > 0.5
+            preds = probs
             batch_acc = (labels == preds).mean()
             class_acc = [labels[i] == preds[i] for i in range(len(labels))]
 
@@ -62,16 +62,15 @@ def validation(model, criterion, val_loader, device):
 
 
 def train(args):
-    
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     early_stop = 0
     
     ## 데이터 셋 설정
-    df = pd.read_csv('./data/train.csv')
-    df["img_path"] = df['img_path'].apply(lambda x: './data/merge_'+x[2:]) # img path 변경
+    df = pd.read_csv('./data/new_train.csv')
+    df["img_path"] = df['img_path'].apply(lambda x: './data/new_merge_'+x[2:]) # img path 변경
     df = df.sample(frac=1)
     
-    train_len = int(len(df) * 0.8)
+    train_len = int(len(df) * 0.9)
     train_df = df[:train_len]
     val_df = df[train_len:]
 
@@ -97,7 +96,7 @@ def train(args):
     val_dataset = CustomDataset(val_df['img_path'].values, val_labels, test_transform)
     val_loader = DataLoader(val_dataset, batch_size = args.batch_size, shuffle=False, num_workers=args.num_workers)
 
-    model = CoatNet()
+    model = ConvNext_large()
     model.to(device)
     
     optimizer = torch.optim.Adam(params = model.parameters(), lr = args.lr)
@@ -163,14 +162,14 @@ def train(args):
 
             })
         
-        '''
-        if early_stop > 5:
+        
+        if early_stop > 8:
             torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{epoch}.pth')
             break
-        '''
+        
 
     torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{args.epochs}.pth')
-        
+    
 
 
 if __name__ == "__main__":

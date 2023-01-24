@@ -1,8 +1,8 @@
 python kfold.py \
---model_name convnext \
---detail kfold_5 \
---batch_size 16 \
---epochs 30 \
---makecsvfile False \
---img_size 224 \
+--model_name conv_large_model \
+--detail kfold_5_large \
+--batch_size 4 \
+--epochs 20 \
+--makecsvfile True \
+--img_size 384 \
 

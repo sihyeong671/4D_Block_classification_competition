@@ -6,33 +6,59 @@ from transformers import ConvNextForImageClassification, BeitForImageClassificat
 
 from timm import create_model
 
+
+
+class ConvNext_large(nn.Module):
+    def __init__(self, num_classes=10):
+        super().__init__()
+        model = ConvNextForImageClassification.from_pretrained("facebook/convnext-large-384")
+        self.backbone = model
+        self.classifier_1 = nn.Linear(1000,512)
+        self.classifier_2 = nn.Linear(512,10)
+        self.dropout = nn.Dropout(0.25)
+        
+    def forward(self, x):
+        x = self.backbone(x).logits
+        x = F.relu(self.classifier_1(x))
+        x = self.dropout(x)
+        x = F.sigmoid(self.classifier_2(x))
+        return x
+
 class ConvNext_xlarge(nn.Module):
     def __init__(self, num_classes=10):
         super().__init__()
         model = ConvNextForImageClassification.from_pretrained("facebook/convnext-xlarge-384-22k-1k")
         self.backbone = model
-        self.classifier = nn.Linear(1000, num_classes)
+        self.classifier_1 = nn.Linear(1000,512)
+        self.classifier_2 = nn.Linear(512,10)
+        self.dropout = nn.Dropout(0.25)
         
     def forward(self, x):
         x = self.backbone(x).logits
-        x = F.sigmoid(self.classifier(x))
+        x = F.relu(self.classifier_1(x))
+        x = self.dropout(x)
+        x = F.sigmoid(self.classifier_2(x))
         return x
+
 class ConvNext_base(nn.Module):
     def __init__(self, num_classes=10):
         super().__init__()
         model = ConvNextForImageClassification.from_pretrained("facebook/convnext-base-224")
         self.backbone = model
-        self.classifier = nn.Linear(1000,num_classes)
-        
+        self.classifier_1 = nn.Linear(1000,512)
+        self.classifier_2 = nn.Linear(512,10)
+        self.dropout = nn.Dropout(0.25)
     def forward(self, x):
         x = self.backbone(x).logits
-        x = F.sigmoid(self.classifier(x))
+        x = F.relu(self.classifier_1(x))
+        x = self.dropout(x)
+        x = F.sigmoid(self.classifier_2(x))
         return x
 
-class Finetuned_VIT(nn.Module):
+class Finetuned_Convnext(nn.Module):
     def __init__(self, num_classes=10):
         super().__init__()
-        model = ViTForImageClassification.from_pretrained("aaraki/vit-base-patch16-224-in21k-finetuned-cifar10")
+        model = ConvNextForImageClassification.from_pretrained("ahsanjavid/convnext-tiny-finetuned-cifar10")
         self.backbone = model
         
     def forward(self, x):

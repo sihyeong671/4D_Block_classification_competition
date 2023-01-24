@@ -61,7 +61,7 @@ def validation(model, criterion, val_loader, device):
     return _val_loss, _val_acc, _classes_acc
 
 
-def train(args,train_df,val_df):
+def train(args,train_df,val_df,cnt):
     
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     early_stop = 0
@@ -90,7 +90,7 @@ def train(args,train_df,val_df):
     val_dataset = CustomDataset(val_df['img_path'].values, val_labels, test_transform)
     val_loader = DataLoader(val_dataset, batch_size = args.batch_size, shuffle=False, num_workers=args.num_workers)
 
-    model = CoatNet()
+    model = ConvNext_large()
     model.to(device)
     
     optimizer = torch.optim.Adam(params = model.parameters(), lr = args.lr)
@@ -131,13 +131,14 @@ def train(args,train_df,val_df):
         if best_val_acc < _val_acc:
             best_val_acc = _val_acc
             best_model = deepcopy(model)
+            early_stop = 0
         else:
             early_stop += 1
             
         
         if epoch == 1 or epoch % 5 == 0:
             if args.makecsvfile:
-                inference(args=args,model=best_model, epoch=epoch)
+                inference(args=args,model=best_model, epoch=cnt)
                 
         wandb.log({
             "train loss": _train_loss, 
@@ -157,29 +158,28 @@ def train(args,train_df,val_df):
             })
         
         
-        if early_stop > 5:
-            torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{epoch}.pth')
-            break
+        if early_stop > 8:
+            # torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{epoch}.pth')
+            return best_model
         
 
     torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{args.epochs}.pth')
-        
+    return best_model
+
 def kfold_train(args):
     models = []
     df = pd.read_csv('./data/train.csv')
     df["img_path"] = df['img_path'].apply(lambda x: './data/merge_'+x[2:]) # img path 변경
-    kfold = KFold(n_splits=5, shuffle=True, random_state=777)
-    models = []
-    cnt = 1
+    kfold = KFold(n_splits=10, shuffle=True, random_state=777)
+    cnt = 0
     for train_idx, valid_idx in kfold.split(df):
         cnt += 1
-        model = ConvNext_base()
         train_df = df.iloc[train_idx]
         valid_df = df.iloc[valid_idx]
-        best = train(args, train_df, valid_df)
+        best = train(args, train_df, valid_df,cnt)
         models.append(best)   
-        torch.save(model,f"./ckpt/kfold_{cnt}.pth")
-
+        torch.save(best,f"./ckpt/kfold_{cnt}.pth")
+        
     return models
 
 

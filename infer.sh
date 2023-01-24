@@ -1,6 +1,6 @@
 python inference.py \
---model_name ConvNext \
---detail v2_large_384 \
---epoch 20 \
---ckpt maxvit_maxvit_large_50.pth \
+--model_name kfold \
+--detail 5 \
+--epoch 30 \
+--ckpt kfold_5.pth \
 --img_size 256 \
