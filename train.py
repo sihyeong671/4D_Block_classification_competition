@@ -120,12 +120,12 @@ def train(args):
     best_val_acc = 0
     best_model = None
     
-    criterion = nn.BCELoss().to(device)
-    print(optimizer.param_groups[0]['lr'])
+    # criterion = nn.BCELoss().to(device)
+    criterion = SmoothBCELoss().to(device)
     
     for epoch in range(1, args.epochs+1):
         model.train()
-        train_loss = []
+        train_loss = [] 
         for imgs, labels in tqdm(iter(train_loader)):
             imgs = imgs.float().to(device)
             labels = labels.to(device)
@@ -158,7 +158,7 @@ def train(args):
             early_stop += 1
             
         
-        if epoch == 1 or epoch % 100 == 0:
+        if epoch == 1 or epoch % 10 == 0:
             if args.makecsvfile:
                 inference(args=args,model=best_model)
             torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{epoch}.pth')
@@ -182,14 +182,14 @@ def train(args):
             "learning rate": current_lr
             })
         
-        
-        if early_stop > 8:
-            torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{epoch}.pth')
+        if early_stop > 5:
             break
-        
 
-    torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{args.epochs}.pth')
-    
+    torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{epoch}.pth')
+    # wandb.log_artifact(
+    #     best_model,
+        
+    # )
 
 
 if __name__ == "__main__":

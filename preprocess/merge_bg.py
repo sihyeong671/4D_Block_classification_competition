@@ -22,7 +22,11 @@ for k in keywords:
 for img_l, background in tqdm(zip(img_list, bg_list)):
     # './train\\TRAIN_00999.jpg'
     name = img_l[-15:]
+    num = int(name[-9:-4])
     img = cv2.imread(img_l)
+    if 31600 <= num <= 31711:
+        cv2.imwrite(f"../data/new_merge_train/{name}", img)
+        continue
 
     thresh = 230
     
@@ -66,6 +70,6 @@ for img_l, background in tqdm(zip(img_list, bg_list)):
     img_filter += img_back
 
     
-    with open('./used_name.txt', 'a') as f:
+    with open('./new_used_name.txt', 'a') as f:
         f.write(f'{background}\n')
-    cv2.imwrite(f"../data/merge_train/{name}",img_filter)
+    cv2.imwrite(f"../data/new_merge_train/{name}", img_filter)
