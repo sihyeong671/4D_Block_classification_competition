@@ -1,13 +1,17 @@
 import pandas as pd
 import numpy as np
 import os
-
+import argparse
 from copy import deepcopy
 
+import matplotlib.pyplot as plt
+
+import torch.optim as optim
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
+# from cosine_annealing_warmup import CosineAnnealingWarmupRestarts
 
 import transformers
 
@@ -16,7 +20,6 @@ from albumentations.pytorch.transforms import ToTensorV2
 
 from tqdm.auto import tqdm
 
-import argparse
 
 from util import *
 
@@ -28,6 +31,9 @@ from inference import inference
 
 from sklearn.model_selection import train_test_split, KFold
 
+CLASSES = [
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'
+]
 
 def validation(model, criterion, val_loader, device):
     model.eval()
@@ -54,7 +60,7 @@ def validation(model, criterion, val_loader, device):
             val_loss.append(loss.item())
             classes_acc.append(np.mean(class_acc,axis=0))
         
-        _classes_acc = np.mean(classes_acc,axis=0)
+        _classes_acc = np.mean(classes_acc, axis=0)
         _val_loss = np.mean(val_loss)
         _val_acc = np.mean(val_acc)
     
@@ -99,14 +105,21 @@ def train(args):
     model = ConvNext_large()
     model.to(device)
     
-    optimizer = torch.optim.Adam(params = model.parameters(), lr = args.lr)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=2, threshold_mode='abs', min_lr=1e-8, verbose=True)
-
+    optimizer = optim.Adam(params = model.parameters(), lr = args.lr)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer,
+                                                     mode='max',
+                                                     factor=0.5,
+                                                     patience=3,
+                                                     cooldown=5,
+                                                     min_lr=1e-9,
+                                                     threshold_mode='abs',
+                                                     )
 
     best_val_acc = 0
     best_model = None
     
     criterion = nn.BCELoss().to(device)
+    print(optimizer.param_groups[0]['lr'])
     
     for epoch in range(1, args.epochs+1):
         model.train()
@@ -121,6 +134,7 @@ def train(args):
             loss = criterion(output, labels)
             
             loss.backward()
+            nn.utils.clip_grad_norm_(model.parameters(), args.clip)
             optimizer.step()
             
             train_loss.append(loss.item())
@@ -129,7 +143,8 @@ def train(args):
         _train_loss = np.mean(train_loss)
         
         print(f'Epoch [{epoch}], Train Loss : [{_train_loss:.5f}] Val Loss : [{_val_loss:.5f}] Val ACC : [{_val_acc:.5f}]')
-        print(f'Class acc(A-J) : [{_classes_acc}]')
+        for _cls, _acc in zip(CLASSES, _classes_acc):
+            print(f'{_cls} acc : [{_acc}]')
         
         if scheduler is not None:
             scheduler.step(_val_acc)
@@ -137,14 +152,18 @@ def train(args):
         if best_val_acc < _val_acc:
             best_val_acc = _val_acc
             best_model = deepcopy(model)
+            early_stop = 0
         else:
             early_stop += 1
             
         
-        if epoch == 1 or epoch % 5 == 0:
+        if epoch == 1 or epoch % 100 == 0:
             if args.makecsvfile:
                 inference(args=args,model=best_model, epoch=epoch)
-                
+            torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{epoch}.pth')
+        
+        
+        current_lr = float(optimizer.param_groups[0]['lr'])
         wandb.log({
             "train loss": _train_loss, 
             "val loss": _val_loss,
@@ -159,7 +178,7 @@ def train(args):
             "H Acc": _classes_acc[7],
             "I Acc": _classes_acc[8],
             "J Acc": _classes_acc[9],
-
+            "learning rate": current_lr
             })
         
         
@@ -184,7 +203,8 @@ if __name__ == "__main__":
     parser.add_argument('--model_name', default="ConvNext")
     parser.add_argument('--detail', default="xlarge_384")
     parser.add_argument('--makecsvfile', type=bool ,default=False)
-    parser.add_argument('--ckpt',default=None)
+    parser.add_argument('--ckpt', default=None)
+    parser.add_argument('--clip', default=1)
     # parser.add_argument('--checkpoints', default="microsoft/beit-base-patch16-224-pt22k-ft22k")
     args = parser.parse_args()
     

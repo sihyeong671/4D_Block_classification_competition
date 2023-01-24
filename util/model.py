@@ -1,5 +1,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
+from torchvision import models
 
 import transformers
 from transformers import ConvNextForImageClassification, BeitForImageClassification, ViTForImageClassification,AutoModelForImageClassification
@@ -29,9 +30,12 @@ class ConvNext_xlarge(nn.Module):
         super().__init__()
         model = ConvNextForImageClassification.from_pretrained("facebook/convnext-xlarge-384-22k-1k")
         self.backbone = model
-        self.classifier_1 = nn.Linear(1000,512)
-        self.classifier_2 = nn.Linear(512,10)
-        self.dropout = nn.Dropout(0.25)
+        self.classifier = nn.Sequential(
+            nn.Linear(1000, 512),
+            nn.BatchNorm1d(512),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(512, num_classes))
         
     def forward(self, x):
         x = self.backbone(x).logits
@@ -39,7 +43,6 @@ class ConvNext_xlarge(nn.Module):
         x = self.dropout(x)
         x = F.sigmoid(self.classifier_2(x))
         return x
-
 class ConvNext_base(nn.Module):
     def __init__(self, num_classes=10):
         super().__init__()
@@ -116,4 +119,13 @@ class CoatNet(nn.Module):
         return x
 
 
-
+class ResNet(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.model = models.resnet34(pretrained=True)
+        self.model.fc = nn.Linear(512, 10)
+    
+    def forward(self, x):
+        x = self.model(x)
+        x = F.sigmoid(x)
+        return x

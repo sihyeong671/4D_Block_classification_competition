@@ -154,13 +154,12 @@ def train(args,train_df,val_df,cnt):
             "H Acc": _classes_acc[7],
             "I Acc": _classes_acc[8],
             "J Acc": _classes_acc[9],
-
             })
         
         
-        if early_stop > 8:
-            # torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{epoch}.pth')
-            return best_model
+        if early_stop > 10:
+            torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{epoch}.pth')
+            break
         
 
     torch.save(best_model, f'./ckpt/{args.model_name}_{args.detail}_{args.epochs}.pth')
