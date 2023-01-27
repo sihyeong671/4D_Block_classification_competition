@@ -65,7 +65,7 @@ def inference(args, model=None):
     preds = infer(model, test_loader, device)
     submit = pd.read_csv('./data/sample_submission.csv')
     submit.iloc[:,1:] = preds
-    submit.to_csv(f'./{args.model_name}_{args.detail}_{args.epochs}.csv', index=False)
+    submit.to_csv(f'./{args.model_name}_{args.detail}_{args.epoch}.csv', index=False)
     
 if __name__ == "__main__":
     

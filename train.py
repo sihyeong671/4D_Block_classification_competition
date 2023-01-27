@@ -104,7 +104,7 @@ def train(args):
     val_dataset = CustomDataset(val_df['img_path'].values, val_labels, test_transform)
     val_loader = DataLoader(val_dataset, batch_size = args.batch_size, shuffle=False, num_workers=args.num_workers)
 
-    model = Swim_t_large()
+    model = vit_base()
     model.to(device)
     
     optimizer = optim.Adam(params = model.parameters(), lr = args.lr)
@@ -120,8 +120,8 @@ def train(args):
     best_val_acc = 0
     best_model = None
     
-    # criterion = nn.BCELoss().to(device)
-    criterion = SmoothBCELoss().to(device)
+    criterion = nn.BCELoss().to(device)
+
     
     for epoch in range(1, args.epochs+1):
         model.train()

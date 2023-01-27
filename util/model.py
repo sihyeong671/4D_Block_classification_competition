@@ -105,13 +105,13 @@ class Maxvit_base(nn.Module):
         x = F.sigmoid(x)
         return x
 
-class Swim_t_large(nn.Module):
+class vit_base(nn.Module):
     def __init__(self, num_classes=10):
         super().__init__()
-        model = SwinForImageClassification.from_pretrained("microsoft/swin-base-patch4-window12-384-in22k")
+        model = ViTForImageClassification.from_pretrained("google/vit-base-patch16-384")
         self.backbone = model
         self.classifier = nn.Sequential(
-            nn.Linear(21841, 512),
+            nn.Linear(1000, 512),
             nn.BatchNorm1d(512),
             nn.ReLU(),
             nn.Dropout(0.3),

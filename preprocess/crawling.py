@@ -24,12 +24,11 @@ DATA_PATH = "../data/crawed_img/"
 
 def get_img_urls(keyword):
     options = webdriver.ChromeOptions()
-    options.add_argument('headless') # 창 띄우지 않고 실행
     options.add_argument('--disable-gpu') # gpu 사용 x
     options.add_argument('lang=ko_KR') # 언어 한글
-    user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
+    user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
     options.add_argument(f"user-agent={user_agent}")
-    service = Service(executable_path="/usr/local/bin/chormedriver")
+    service = Service(executable_path="C:\Programming\deep_learning\dacon&kaggle\4dclassification\preprocess\chromedriver.exe")
 
     img_urls = []
     with webdriver.Chrome(service=service, options=options) as browser:
@@ -107,7 +106,7 @@ def do_process_with_thread_crawl(keyword: str):
     
 if __name__ == "__main__":
     
-    keywords = ['child', 'table', 'indoor']
+    keywords = ['table']
 
     os.makedirs(DATA_PATH, exist_ok=True)
     for k in keywords:
