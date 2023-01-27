@@ -122,8 +122,8 @@ def train(args):
     best_val_acc = 0
     best_model = None
     
+    criterion = CDB_loss(class_difficulty = np.ones(10)).cuda()
     # criterion = nn.BCELoss().to(device)
-    criterion = SmoothBCELoss().to(device)
     
     for epoch in range(1, args.epochs+1):
         model.train()
@@ -145,6 +145,9 @@ def train(args):
                     
         _val_loss, _val_acc, _classes_acc = validation(model, criterion, val_loader, device)
         _train_loss = np.mean(train_loss)
+        
+        criterion = CDB_loss(class_difficulty = 1 - _classes_acc).cuda()
+        
         
         print(f'Epoch [{epoch}], Train Loss : [{_train_loss:.5f}] Val Loss : [{_val_loss:.5f}] Val ACC : [{_val_acc:.5f}]')
         for _cls, _acc in zip(CLASSES, _classes_acc):
