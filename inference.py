@@ -36,9 +36,11 @@ def infer(model, test_loader, device):
             probs = model(imgs)
             probs  = probs.cpu().detach().numpy()
             # soft voting시 여기 고치면 됨
-            preds = probs > 0.5
-            preds = preds.astype(int)
-            predictions += preds.tolist()
+            # preds = probs > 0.5
+            # preds = preds.astype(int)
+            # predictions += preds.tolist()
+            predictions += probs.tolist()
+
     return predictions
 
 
