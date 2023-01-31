@@ -1,6 +1,6 @@
 # 4D_Block_classification_competition
 
-# [Dacon 포디 블럭 구조 추출 AI 경진대회](https://dacon.io/competitions/official/236046/overview/description)
+# [Dacon 포디블럭 구조 추출 AI 경진대회](https://dacon.io/competitions/official/236046/overview/description)
 
 ## 개요
 
